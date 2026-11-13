@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HTML Game Library – Play single-file & site-hosted games</title>
+<meta name="description" content="A simple library to collect, organize, and play single-file HTML games or games hosted on any website. Works offline after adding games. Your library stays on this device.">
+<meta name="theme-color" content="#4b4be8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap">
+<style>
+:root{--bg:#f2f3fa;--surface:#fff;--ink:#16182e;--muted:#5d6180;--line:#d9dbea;--accent:#4b4be8;--accent-ink:#fff;--play:#ffb703;--play-ink:#2a1d00;--danger:#c0283d;
+color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101226;--surface:#1a1d38;--ink:#eef0ff;--muted:#a0a5cc;--line:#2d315a;--accent:#8c8cff;--accent-ink:#10122a;--danger:#ff7a8d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101226;--surface:#1a1d38;--ink:#eef0ff;--muted:#a0a5cc;--line:#2d315a;--accent:#8c8cff;--accent-ink:#10122a;--danger:#ff7a8d;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+h1,h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;letter-spacing:-.02em}
+main{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:clamp(2rem,6vw,3.2rem);font-weight:800;line-height:1.05}
+.sub{color:var(--muted);max-width:52ch;margin:10px 0 8px}
+.statusrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px;color:var(--muted);font-size:.9rem}
+#status{margin:0}
+#sync[hidden]{display:none}
+.add{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+@media(max-width:720px){.add{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.drop{border:2px dashed var(--line);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;min-height:190px;padding:16px;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.drop p{margin:0;color:var(--muted)}
+button,.btn{font:inherit;font-weight:600;border:0;border-radius:9px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button.play{background:var(--play);color:var(--play-ink)}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input[type=text],textarea{width:100%;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+textarea{min-height:100px;resize:vertical;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;margin:8px 0}
+label{font-weight:600;font-size:.9rem}
+h2{font-size:1.4rem;margin:36px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.cart{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.art{height:92px;display:flex;align-items:flex-end;padding:10px 12px;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:2rem;color:#fff;background:linear-gradient(135deg,hsl(var(--h) 70% 48%),hsl(calc(var(--h) + 50) 70% 36%))}
+.cart .body{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.cart .name{font-weight:600;word-break:break-word}
+.cart .meta{color:var(--muted);font-size:.85rem}
+.row{display:flex;gap:8px;margin-top:auto}
+.row .play{flex:1}
+.empty{color:var(--muted);padding:22px;border:1px dashed var(--line);border-radius:12px}
+.note{color:var(--muted);font-size:.85rem;margin-top:30px;max-width:70ch}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:9px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;z-index:50}
+#toast.show{opacity:1}
+#player{position:fixed;inset:0;background:#05060f;display:none;flex-direction:column;z-index:40}
+#player.open{display:flex}
+.bar{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;background:#0c0e22;color:#eef0ff}
+.bar .t{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar button{background:#23264a;color:#eef0ff;padding:8px 12px}
+#stage{flex:1;min-height:0;background:#000;display:flex}
+iframe{flex:1;border:0;width:100%;height:100%;background:#fff}
+</style>
+</head>
+<body>
+<main>
+  <h1>HTML Game Library</h1>
+  <p class="sub">Collect and play single-file HTML games or any game hosted on a website. Add them once — they stay in your library on this device.</p>
+
+  <div class="statusrow"><p id="status"></p><button class="ghost" id="sync" hidden></button><button class="ghost" id="export">Export library</button><button class="ghost" id="import">Import library</button><input type="file" id="importfile" accept=".json" hidden></div>
+
+  <div class="add">
+    <div class="panel">
+      <div class="drop" id="drop">
+        <strong>Drop .html files here</strong>
+        <p>or choose them from your device</p>
+        <button id="pick">Choose files</button>
+        <input type="file" id="file" accept=".html,.htm,text/html" multiple hidden>
+      </div>
+    </div>
+    <div class="panel">
+      <label for="gname">Paste game code</label>
+      <textarea id="gcode" placeholder="&lt;!DOCTYPE html&gt;…" spellcheck="false" aria-label="Game HTML code"></textarea>
+      <input type="text" id="gname" placeholder="Game name (optional)">
+      <input type="text" id="gsite" placeholder="Source site URL (optional)" style="margin-top:8px">
+      <div class="row" style="margin-top:10px"><button class="play" id="addcode">Add and play</button></div>
+      <label for="gurl" style="display:block;margin-top:16px">Or add a game from a website</label>
+      <input type="text" id="gurl" placeholder="https://example.com/game.html">
+      <div class="row" style="margin-top:8px"><button class="play" id="addurl">Add from site</button></div>
+    </div>
+  </div>
+
+  <h2>Your library</h2>
+  <div id="lib" class="grid"></div>
+
+  <p class="note">Your library is saved only on this device (or in your Claude.ai account if signed in there). Export it to share with others. Games from websites load directly from the original site — they may be blocked if the site prevents embedding. Fully self-contained single-file games are the most reliable.</p>
+</main>
+
+<div id="player" role="dialog" aria-label="Game">
+  <div class="bar">
+    <button id="back">Back</button>
+    <span class="t" id="ptitle"></span>
+    <button id="reload">Restart</button>
+    <button id="full">Fullscreen</button>
+  </div>
+  <div id="stage"></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+  var KEY="html-game-library-v1",CH=60000,local=[],games=[],current=null,col=null,cloud=false,loaded=true,cache={};
+  var $=function(id){return document.getElementById(id)};
+
+  function loadLocal(){try{var r=localStorage.getItem(KEY);local=r?JSON.parse(r):[]}catch(e){local=[]}if(!Array.isArray(local))local=[];local.forEach(function(g){g.size=g.html?g.html.length:0})}
+  function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(local.map(function(g){return{id:g.id,name:g.name,html:g.html||null,url:g.url||null}})));return true}catch(e){return false}}
+  function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove("show")},3200)}
+  function hue(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h}
+  function kb(n){return n<1024?n+" B":n<1048576?Math.round(n/1024)+" KB":(n/1048576).toFixed(1)+" MB"}
+  function list(){return cloud?games:local}
+
+  function setStatus(){
+    $("status").textContent=cloud?"Synced to your claude.ai account. Your library appears on every device where you’re signed in.":"Saved on this device only.";
+    var b=$("sync");b.hidden=!(cloud&&local.length);
+    b.textContent="Move "+local.length+" game"+(local.length===1?"":"s")+" from this device to your account";
+  }
+
+  function render(){
+    var lib=$("lib");lib.innerHTML="";var L=list();
+    if(!L.length){lib.className="";var e=document.createElement("div");e.className="empty";e.textContent=(cloud&&!loaded)?"Loading your library…":"No games yet. Drop an .html file, paste code, or add a game from a website.";lib.appendChild(e);return}
+    lib.className="grid";
+    L.forEach(function(g){
+      var c=document.createElement("div");c.className="cart";
+      var a=document.createElement("div");a.className="art";a.style.setProperty("--h",hue(g.name));a.textContent=(g.name.trim()[0]||"?").toUpperCase();
+      var b=document.createElement("div");b.className="body";
+      var n=document.createElement("div");n.className="name";n.textContent=g.name;
+      var m=document.createElement("div");m.className="meta";m.textContent=g.size?kb(g.size):(g.url?(function(){try{return new URL(g.url).hostname}catch(e){return g.url}})():"remote");
+      var r=document.createElement("div");r.className="row";
+      var p=document.createElement("button");p.className="play";p.textContent="Play";p.onclick=function(){play(g)};
+      var rn=document.createElement("button");rn.className="ghost";rn.textContent="Rename";rn.onclick=function(){rename(g)};
+      var d=document.createElement("button");d.className="danger";d.textContent="Delete";d.onclick=function(){remove(g)};
+      r.appendChild(p);r.appendChild(rn);r.appendChild(d);
+      b.appendChild(n);b.appendChild(m);b.appendChild(r);
+      c.appendChild(a);c.appendChild(b);lib.appendChild(c);
+    });
+  }
+
+  async function addCloud(name,html,url){
+    var id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    if(html){
+      var n=Math.max(1,Math.ceil(html.length/CH)),jobs=[];
+      for(var i=0;i<n;i++)jobs.push(col.doc("c_"+id+"_"+i).set({k:"c",d:html.slice(i*CH,(i+1)*CH)}));
+      await Promise.all(jobs);
+      await col.doc("m_"+id).set({k:"m",name:name,size:html.length,n:n,url:url||null,ts:Date.now()});
+      cache[id]=html;
+      return{id:id,name:name,size:html.length,n:n,html:html,url:url||null};
+    }else{
+      await col.doc("m_"+id).set({k:"m",name:name,size:0,n:0,url:url,ts:Date.now()});
+      return{id:id,name:name,size:0,n:0,url:url,html:null};
+    }
+  }
+  async function add(name,html,url){
+    if(cloud){
+      try{return await addCloud(name,html,url)}
+      catch(e){toast("Couldn’t save to your account ("+((e&&e.code)||"error")+"). It will still play now.");return{id:"tmp",name:name,size:html?html.length:0,html:html||null,url:url||null}}
+    }
+    var g={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,html:html||null,url:url||null,size:html?html.length:0};
+    local.unshift(g);
+    if(!saveLocal())toast("Too large to keep after you close this page, but it will play now.");
+    render();return g;
+  }
+  async function getHtml(g){
+    if(g.html)return g.html;
+    if(cache[g.id])return cache[g.id];
+    var parts=await Promise.all(Array.apply(null,Array(g.n||1)).map(function(_,i){return col.doc("c_"+g.id+"_"+i).get()}));
+    var h=parts.map(function(s){return s.exists?s.data().d:""}).join("");
+    cache[g.id]=h;return h;
+  }
+  async function rename(g){
+    var v=prompt("Game name",g.name);if(!v||!v.trim())return;
+    g.name=v.trim();
+    if(cloud){try{await col.doc("m_"+g.id).update({name:g.name})}catch(e){toast("Couldn’t rename.")}}else{saveLocal();render()}
+  }
+  async function remove(g){
+    if(!confirm("Delete “"+g.name+"”?"))return;
+    if(cloud){
+      try{var jobs=[col.doc("m_"+g.id).delete()];for(var i=0;i<(g.n||1);i++)jobs.push(col.doc("c_"+g.id+"_"+i).delete());await Promise.all(jobs);delete cache[g.id]}
+      catch(e){toast("Couldn’t delete.")}
+    }else{local=local.filter(function(x){return x!==g});saveLocal();render()}
+  }
+
+  function mount(){
+    var st=$("stage");st.innerHTML="";
+    var f=document.createElement("iframe");
+    f.setAttribute("allow","fullscreen; gamepad; autoplay");
+    f.setAttribute("title",current.name);
+    if(current.html){
+      f.setAttribute("sandbox","allow-scripts allow-pointer-lock allow-forms allow-modals allow-popups");
+      f.srcdoc=current.html;
+    }else if(current.url){
+      // Looser sandbox for remote sites so more games work; still isolates from this page
+      f.setAttribute("sandbox","allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-top-navigation-by-user-activation");
+      f.src=current.url;
+    }
+    st.appendChild(f);
+    setTimeout(function(){try{f.focus()}catch(e){}},50);
+  }
+  async function play(g){
+    if(g.url && !g.html && !cache[g.id]){
+      current={name:g.name,url:g.url,html:null};$("ptitle").textContent=g.name;$("player").classList.add("open");mount();
+      return;
+    }
+    var h=g.html||cache[g.id];
+    if(!h){toast("Loading “"+g.name+"”…");try{h=await getHtml(g)}catch(e){toast("Couldn’t load that game.");return}}
+    current={name:g.name,html:h,url:g.url||null};$("ptitle").textContent=g.name;$("player").classList.add("open");mount();
+  }
+  function close(){
+    if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();
+    $("player").classList.remove("open");$("stage").innerHTML="";current=null;
+  }
+
+  function files(fl){
+    var arr=Array.prototype.slice.call(fl).filter(function(f){return /\.html?$/i.test(f.name)||f.type==="text/html"});
+    if(!arr.length){toast("Choose .html files only.");return}
+    arr.forEach(function(f){
+      var r=new FileReader();
+      r.onload=async function(){var g=await add(f.name.replace(/\.html?$/i,""),String(r.result));if(arr.length===1)play(g)};
+      r.onerror=function(){toast("Couldn’t read "+f.name)};
+      r.readAsText(f);
+    });
+  }
+
+  $("pick").onclick=function(){$("file").click()};
+  $("file").onchange=function(e){files(e.target.files);e.target.value=""};
+  var dz=$("drop");
+  ["dragenter","dragover"].forEach(function(t){dz.addEventListener(t,function(e){e.preventDefault();dz.classList.add("over")})});
+  ["dragleave","drop"].forEach(function(t){dz.addEventListener(t,function(e){e.preventDefault();dz.classList.remove("over")})});
+  dz.addEventListener("drop",function(e){files(e.dataTransfer.files)});
+  window.addEventListener("dragover",function(e){e.preventDefault()});
+  window.addEventListener("drop",function(e){e.preventDefault()});
+
+  $("addcode").onclick=async function(){
+    var code=$("gcode").value.trim();
+    if(!code){toast("Paste the game’s HTML first.");return}
+    var name=$("gname").value.trim()||"Untitled game";
+    var site=$("gsite").value.trim()||null;
+    $("gcode").value="";$("gname").value="";$("gsite").value="";
+    play(await add(name,code,site));
+  };
+  $("addurl").onclick=async function(){
+    var url=$("gurl").value.trim();
+    if(!url){toast("Enter a game URL first.");return}
+    try{new URL(url)}catch(e){toast("That doesn’t look like a valid URL.");return}
+    var name=$("gname").value.trim()|| (function(){try{return new URL(url).hostname}catch(e){return "Remote game"}})();
+    $("gurl").value="";$("gname").value="";
+    play(await add(name,null,url));
+    toast("Added as a site-hosted game. It will load directly from the website (may be blocked by the site).");
+  };
+  $("sync").onclick=async function(){
+    var moved=0,keep=[];
+    for(var i=0;i<local.length;i++){try{await addCloud(local[i].name,local[i].html,local[i].url);moved++}catch(e){keep.push(local[i])}}
+    local=keep;saveLocal();setStatus();
+    toast(moved+" game"+(moved===1?"":"s")+" moved to your account"+(keep.length?"; "+keep.length+" couldn’t be moved.":"."));
+  };
+  $("export").onclick=function(){
+    var data=JSON.stringify(local.map(function(g){return{name:g.name,html:g.html||null,url:g.url||null}}),null,2);
+    var blob=new Blob([data],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="html-game-library.json";a.click();
+    toast("Library exported.");
+  };
+  $("import").onclick=function(){$("importfile").click()};
+  $("importfile").onchange=function(e){
+    var f=e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var arr=JSON.parse(r.result);
+        if(!Array.isArray(arr))throw new Error();
+        arr.forEach(function(item){
+          if(item&&item.name){
+            var g={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:item.name,html:item.html||null,url:item.url||null,size:item.html?item.html.length:0};
+            local.unshift(g);
+          }
+        });
+        saveLocal();render();
+        toast("Imported "+arr.length+" game"+(arr.length===1?"":"s")+".");
+      }catch(err){toast("Couldn’t read that file.");}
+    };
+    r.readAsText(f);e.target.value="";
+  };
+  $("back").onclick=close;
+  $("reload").onclick=function(){if(current)mount()};
+  $("full").onclick=function(){var s=$("stage");if(document.fullscreenElement){document.exitFullscreen()}else if(s.requestFullscreen){s.requestFullscreen().catch(function(){toast("Fullscreen isn’t available here.")})}else toast("Fullscreen isn’t available here.")};
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&$("player").classList.contains("open")&&!document.fullscreenElement)close()});
+
+  async function initCloud(){
+    try{
+      if(!window.claude||!window.claude.use)return;
+      var tm=new Promise(function(r){setTimeout(function(){r(null)},10000)});
+      var db=await Promise.race([claude.use("db"),tm]);
+      var user=await Promise.race([claude.use("user"),tm]);
+      if(!db||!user)return;
+      var id=await user.id();if(!id)return;
+      col=db.collection("data/users/"+id);cloud=true;loaded=false;setStatus();render();
+      col.where("k","==","m").onSnapshot(function(s){
+        loaded=true;
+        games=s.docs.map(function(d){var x=d.data();return{id:d.id.slice(2),name:x.name,size:x.size,n:x.n,url:x.url||null,ts:x.ts||0}}).sort(function(a,b){return b.ts-a.ts});
+        render();
+      },function(){cloud=false;loaded=true;setStatus();render();toast("Lost connection to your account library.")});
+    }catch(e){}
+  }
+
+  loadLocal();setStatus();render();initCloud();
+})();
+</script>
+</body>
+</html>
